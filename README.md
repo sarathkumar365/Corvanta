@@ -1,126 +1,69 @@
-# Corvanta // Async Workflow Control Plane
+# Corvanta
 
-> Two services. One message contract. Zero direct Java-to-Python coupling.
+## The Autonomous HR Operations Agent for Real Estate Brokerages
 
-Corvanta is the root workspace that orchestrates:
+Corvanta helps brokerages automate HR operations that usually consume time, create compliance risk, and slow growth.
 
-- `docura-backend` (Java 17 + Spring Boot): API, workflow orchestration, RabbitMQ producer/consumer
-- `intelligence-service` (Python 3.12+): async worker that consumes task commands and publishes task results
+It turns complex HR workflows into intelligent, goal-driven automation across onboarding, compliance, and day-to-day HR execution.
 
-RabbitMQ is the runtime handoff boundary.
+## ✨ Positioning
 
----
+**Corvanta is the autonomous HR agent that streamlines hiring, compliance, and operations for real estate brokerages, turning complex HR workflows into intelligent automation.**
 
-## Topology
+## 🎯 Why Corvanta Exists
 
-```mermaid
-flowchart LR
-  A["Client / Postman"] --> B["docura-backend (Java)"]
-  B --> C["RabbitMQ\nwf.task.command.exchange"]
-  C --> D["intelligence-service (Python)"]
-  D --> E["RabbitMQ\nwf.task.result.exchange"]
-  E --> B
-  B --> F["PostgreSQL\nrun state / metadata"]
-```
+Real estate brokerages face a unique operations problem:
 
----
+- High agent turnover and frequent onboarding cycles
+- Licensing and compliance requirements that change by market
+- Manual HR tasks spread across tools, docs, and teams
+- Time lost on repetitive coordination instead of strategic HR work
 
-## Boot Sequence
+## ⚙️ What Corvanta Does
 
-1. Clone root workspace:
+Corvanta acts like an execution layer for brokerage HR teams.
 
-```bash
-git clone git@github.com:sarathkumar365/Corvanta.git
-cd Corvanta
-```
+It helps automate and coordinate:
 
-2. Fetch module repositories (clone missing, update existing):
+- New agent onboarding workflows
+- Licensing and compliance checks
+- Contract and document handling
+- HR task scheduling and follow-through
+- Operational visibility and reporting
 
-```bash
-corvanta bootstrap
-```
+## 🚀 What Makes It Different
 
-3. Start both services:
+- **Built for real estate brokerages:** Designed around brokerage-specific HR and compliance realities
+- **Autonomous workflow behavior:** Handles task flow intelligently, including exceptions and handoffs
+- **End-to-end operational scope:** Covers onboarding through ongoing compliance operations
+- **Scales with brokerage growth:** Supports both smaller teams and multi-office organizations
 
-```bash
-corvanta start all
-```
+## 🧠 Product Structure
 
-4. Check runtime status and logs:
+Corvanta runs with two core backend services:
 
-```bash
-corvanta status all
-corvanta logs all
-corvanta logs java --app --follow
-```
+- **Orchestration Backend (`docura-backend`)**
+  - Coordinates workflows, tracks progress, and drives execution
+- **Intelligence Backend (`intelligence-service`)**
+  - Executes specialized task processing and returns results to orchestration
 
----
+In simple terms: one service manages workflow decisions, the other executes specialized work.
 
-## Command Deck
+## 🏷️ Tagline
 
-```bash
-corvanta start [all|java|python]
-corvanta stop [all|java|python]
-corvanta restart [all|java|python]
-corvanta status [all|java|python]
-corvanta logs [all|java|python] [--follow] [--app] [--errors]
-corvanta bootstrap [--clone-only]
-```
+**Corvanta — your brokerage HR, automated, intelligent, and compliant.**
 
-High-signal log views:
+## 🧭 Get Started
 
-```bash
-corvanta logs java --app --follow
-corvanta logs python --app --follow
-corvanta logs all --errors --follow
-```
+For full setup, local run commands, and service lifecycle operations (`start`, `stop`, `restart`, `status`, `logs`), go to:
 
----
+- If you are evaluating Corvanta, this README is enough for product context.
+- If you are running Corvanta locally, start with Developer Gate.
 
-## Global CLI (Optional)
+- 📘 [Developer Gate](docs/DEVELOPER_GATE.md)
 
-To run `corvanta` from anywhere:
+## 🔗 Repositories
 
-```bash
-echo 'export PATH="/Users/sarathkumar/Projects/Corvanta/scripts:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-Without PATH setup:
-
-```bash
-/Users/sarathkumar/Projects/Corvanta/scripts/corvanta start all
-```
-
----
-
-## Runtime Artifacts
-
-Generated under `.run/`:
-
-- `docura-backend.pid`
-- `intelligence-service.pid`
-- `docura-backend.log`
-- `intelligence-service.log`
-
-Behavior:
-
-- Repeated `start all` does not create duplicate service processes.
-- Each service log is cleared when that service starts/restarts.
-
----
-
-## Repository Layout
-
-- Root repository: `git@github.com:sarathkumar365/Corvanta.git`
-- Backend module: `git@github.com:sarathkumar365/docura-backend.git`
-- Worker module: `git@github.com:sarathkumar365/intelligence-service.git`
-
----
-
-## Control Docs
-
-- Cross-project coordination and handoffs: `coordination/`
-- Shared RabbitMQ contract: `coordination/RABBIT_CONTRACT.md`
-- Service management details: `scripts/DEV_SERVICES.md`
-- Module-specific engineering standards: each module's `AGENTS.md`
+- Root workspace: `git@github.com:sarathkumar365/Corvanta.git`
+- Orchestration backend: `git@github.com:sarathkumar365/docura-backend.git`
+- Intelligence backend: `git@github.com:sarathkumar365/intelligence-service.git`
