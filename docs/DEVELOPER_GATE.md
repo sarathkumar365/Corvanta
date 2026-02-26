@@ -2,6 +2,8 @@
 
 This guide is for engineers who want to run and manage Corvanta locally from the root workspace.
 
+`docura-backend` and `intelligence-service` are external repositories managed from this root workspace via `corvanta bootstrap`.
+
 ## 1) Prerequisites
 
 Corvanta has two modules, each with its own setup requirements.

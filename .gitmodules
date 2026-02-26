@@ -1,6 +1,0 @@
-[submodule "docura-backend"]
-	path = docura-backend
-	url = git@github.com:sarathkumar365/docura-backend.git
-[submodule "intelligence-service"]
-	path = intelligence-service
-	url = git@github.com:sarathkumar365/intelligence-service.git

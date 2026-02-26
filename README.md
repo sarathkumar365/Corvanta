@@ -67,3 +67,5 @@ For full setup, local run commands, and service lifecycle operations (`start`, `
 - Root workspace: `git@github.com:sarathkumar365/Corvanta.git`
 - Orchestration backend: `git@github.com:sarathkumar365/docura-backend.git`
 - Intelligence backend: `git@github.com:sarathkumar365/intelligence-service.git`
+
+Note: backend repositories are external module repos and are fetched locally via `corvanta bootstrap`.
