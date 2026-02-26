@@ -2,6 +2,24 @@
 
 This guide is only for:
 - `/Users/sarathkumar/Projects/Corvanta/scripts/dev-services.sh`
+- `/Users/sarathkumar/Projects/Corvanta/scripts/corvanta`
+
+## Preferred Command
+
+Use `corvanta` as the primary CLI. It wraps `dev-services.sh` and adds better log views.
+
+```bash
+corvanta start all
+corvanta status all
+corvanta logs java --app --follow
+corvanta stop all
+```
+
+If `corvanta` is not in PATH yet:
+
+```bash
+/Users/sarathkumar/Projects/Corvanta/scripts/corvanta start all
+```
 
 ## What this script manages
 
@@ -34,6 +52,17 @@ scripts/dev-services.sh logs [all|java|python]
 scripts/dev-services.sh logs [all|java|python] --follow
 ```
 
+Wrapper CLI (`corvanta`) commands:
+
+```bash
+corvanta start [all|java|python]
+corvanta stop [all|java|python]
+corvanta restart [all|java|python]
+corvanta status [all|java|python]
+corvanta logs [all|java|python] [--follow] [--app] [--errors]
+corvanta bootstrap [--clone-only]
+```
+
 Common examples:
 
 ```bash
@@ -43,6 +72,12 @@ scripts/dev-services.sh restart python
 scripts/dev-services.sh stop all
 scripts/dev-services.sh status all
 scripts/dev-services.sh logs java --follow
+
+corvanta start all
+corvanta restart java
+corvanta logs java --app --follow
+corvanta logs all --errors --follow
+corvanta stop all
 ```
 
 ## How this works in the terminal
@@ -100,6 +135,27 @@ So:
 - `restart python` clears only Python log.
 
 This keeps logs easy to map to the latest launch attempt.
+
+## Log view improvements with `corvanta`
+
+`corvanta logs` adds readability helpers:
+
+- `--app`: app-focused logs (reduces framework noise)
+  - Java: suppresses common Spring/Hibernate/Hikari/Flyway noise patterns
+  - Python: highlights app/task flow lines
+- `--errors`: show only `ERROR`/`WARN`/exception-like lines
+- colorized output:
+  - `ERROR` and exceptions: red
+  - `WARN`: yellow
+  - `INFO`: green
+
+Examples:
+
+```bash
+corvanta logs java --app --follow
+corvanta logs python --app --follow
+corvanta logs all --errors --follow
+```
 
 ## RabbitMQ credentials and env behavior
 

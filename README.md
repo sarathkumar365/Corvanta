@@ -31,14 +31,15 @@ scripts/bootstrap-modules.sh
 3. Start local services.
 
 ```bash
-scripts/dev-services.sh start all
+corvanta start all
 ```
 
 4. Check status and logs.
 
 ```bash
-scripts/dev-services.sh status all
-scripts/dev-services.sh logs all
+corvanta status all
+corvanta logs all
+corvanta logs java --app --follow
 ```
 
 ## Bootstrap Script
@@ -58,6 +59,25 @@ scripts/bootstrap-modules.sh --clone-only
 
 This mode clones missing repos and does not update already existing repos.
 
+## Corvanta CLI (Recommended)
+
+Script: `/Users/sarathkumar/Projects/Corvanta/scripts/corvanta`
+
+Supported commands:
+- `corvanta start [all|java|python]`
+- `corvanta stop [all|java|python]`
+- `corvanta restart [all|java|python]`
+- `corvanta status [all|java|python]`
+- `corvanta logs [all|java|python] [--follow] [--app] [--errors]`
+- `corvanta bootstrap [--clone-only]`
+
+Global PATH setup (optional, one-time):
+
+```bash
+echo 'export PATH="/Users/sarathkumar/Projects/Corvanta/scripts:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
 ## Run/Restart Services During Development
 
 Script: `/Users/sarathkumar/Projects/Corvanta/scripts/dev-services.sh`
@@ -69,6 +89,19 @@ Script: `/Users/sarathkumar/Projects/Corvanta/scripts/dev-services.sh`
 - Stop both: `scripts/dev-services.sh stop all`
 
 Logs are written in `.run/` and each service log is cleared on every start/restart of that service.
+
+## Logging Views
+
+Use these for better visibility in terminal:
+
+- Raw logs: `corvanta logs [all|java|python] [--follow]`
+- App-focused logs (less framework noise): `corvanta logs [all|java|python] --app [--follow]`
+- Errors/Warnings only: `corvanta logs [all|java|python] --errors [--follow]`
+
+Color behavior:
+- `ERROR`/exceptions: red
+- `WARN`: yellow
+- `INFO`: green
 
 ## Notes
 

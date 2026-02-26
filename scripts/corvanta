@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEV_SCRIPT="$ROOT_DIR/scripts/dev-services.sh"
+BOOTSTRAP_SCRIPT="$ROOT_DIR/scripts/bootstrap-modules.sh"
+
+usage() {
+  cat <<USAGE
+Corvanta CLI
+
+Usage:
+  corvanta start [all|java|python]
+  corvanta stop [all|java|python]
+  corvanta restart [all|java|python]
+  corvanta status [all|java|python]
+  corvanta logs [all|java|python] [--follow] [--app] [--errors]
+  corvanta bootstrap [--clone-only]
+
+Examples:
+  corvanta start all
+  corvanta restart java
+  corvanta logs java --follow
+  corvanta logs java --app --follow
+  corvanta logs all --errors
+  corvanta bootstrap
+USAGE
+}
+
+colorize_stream() {
+  while IFS= read -r line; do
+    if [[ "$line" == *"ERROR"* ]] || [[ "$line" == *"Exception"* ]] || [[ "$line" == *"Traceback"* ]]; then
+      printf '\033[31m%s\033[0m\n' "$line"
+    elif [[ "$line" == *"WARN"* ]]; then
+      printf '\033[33m%s\033[0m\n' "$line"
+    elif [[ "$line" == *"INFO"* ]]; then
+      printf '\033[32m%s\033[0m\n' "$line"
+    else
+      printf '%s\n' "$line"
+    fi
+  done
+}
+
+run_logs() {
+  local target="${1:-all}"
+  shift || true
+
+  local follow="false"
+  local app_only="false"
+  local errors_only="false"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --follow)
+        follow="true"
+        ;;
+      --app)
+        app_only="true"
+        ;;
+      --errors)
+        errors_only="true"
+        ;;
+      *)
+        echo "Unknown logs option: $1" >&2
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
+  local -a cmd=("$DEV_SCRIPT" "logs" "$target")
+  if [[ "$follow" == "true" ]]; then
+    cmd+=("--follow")
+  fi
+
+  if [[ "$errors_only" == "true" ]]; then
+    "${cmd[@]}" | rg --line-buffered "ERROR|WARN|Exception|Traceback|FAILED|Caused by:" | colorize_stream
+    return
+  fi
+
+  if [[ "$app_only" == "true" ]]; then
+    case "$target" in
+      java)
+        "${cmd[@]}" \
+          | rg --line-buffered -v "org\\.springframework|org\\.hibernate|com\\.zaxxer|org\\.apache\\.catalina|org\\.flywaydb|\\so\\.s\\.|\\s\\.s\\.|\\so\\.h\\.|\\so\\.f\\.|\\so\\.a\\." \
+          | colorize_stream
+        ;;
+      python)
+        "${cmd[@]}" \
+          | rg --line-buffered "app\\.|intelligence-service|taskId=|runId=|stepIndex=|traceId=|Received task|Task processed|Task processing failed|Published task result|ERROR|WARN|Traceback|Exception" \
+          | colorize_stream
+        ;;
+      all)
+        "${cmd[@]}" \
+          | rg --line-buffered -v "org\\.springframework|org\\.hibernate|com\\.zaxxer|org\\.apache\\.catalina|org\\.flywaydb|\\so\\.s\\.|\\s\\.s\\.|\\so\\.h\\.|\\so\\.f\\.|\\so\\.a\\." \
+          | rg --line-buffered "app\\.|com\\.docura|intelligence-service|taskId=|runId=|stepIndex=|traceId=|Received task|Task processed|Task processing failed|Published task result|ERROR|WARN|Traceback|Exception|===== .* log:" \
+          | colorize_stream
+        ;;
+      *)
+        echo "Invalid logs target: $target" >&2
+        usage
+        exit 1
+        ;;
+    esac
+    return
+  fi
+
+  "${cmd[@]}" | colorize_stream
+}
+
+command="${1:-}"
+shift || true
+
+case "$command" in
+  logs)
+    run_logs "$@"
+    ;;
+  start|stop|restart|status)
+    "$DEV_SCRIPT" "$command" "$@"
+    ;;
+  bootstrap)
+    "$BOOTSTRAP_SCRIPT" "$@"
+    ;;
+  help|-h|--help|"")
+    usage
+    ;;
+  *)
+    echo "Unknown command: $command" >&2
+    usage
+    exit 1
+    ;;
+esac
