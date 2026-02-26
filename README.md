@@ -1,40 +1,52 @@
-# Corvanta
+# Corvanta // Async Workflow Control Plane
 
-Corvanta is the root workspace that coordinates two services:
+> Two services. One message contract. Zero direct Java-to-Python coupling.
 
-- `docura-backend` (Java 17 + Spring Boot): orchestration API, workflow engine, RabbitMQ producer/consumer
+Corvanta is the root workspace that orchestrates:
+
+- `docura-backend` (Java 17 + Spring Boot): API, workflow orchestration, RabbitMQ producer/consumer
 - `intelligence-service` (Python 3.12+): async worker that consumes task commands and publishes task results
 
-RabbitMQ is the handoff boundary between the two services.
+RabbitMQ is the runtime handoff boundary.
 
-## Repository Structure
+---
 
-- Root repository: `git@github.com:sarathkumar365/Corvanta.git`
-- Module repository (backend): `git@github.com:sarathkumar365/docura-backend.git`
-- Module repository (worker): `git@github.com:sarathkumar365/intelligence-service.git`
+## Topology
 
-## Quick Start
+```mermaid
+flowchart LR
+  A["Client / Postman"] --> B["docura-backend (Java)"]
+  B --> C["RabbitMQ\nwf.task.command.exchange"]
+  C --> D["intelligence-service (Python)"]
+  D --> E["RabbitMQ\nwf.task.result.exchange"]
+  E --> B
+  B --> F["PostgreSQL\nrun state / metadata"]
+```
 
-1. Clone the root repository.
+---
+
+## Boot Sequence
+
+1. Clone root workspace:
 
 ```bash
 git clone git@github.com:sarathkumar365/Corvanta.git
 cd Corvanta
 ```
 
-2. Fetch module repositories (clone missing modules, update existing modules).
+2. Fetch module repositories (clone missing, update existing):
 
 ```bash
-scripts/bootstrap-modules.sh
+corvanta bootstrap
 ```
 
-3. Start local services.
+3. Start both services:
 
 ```bash
 corvanta start all
 ```
 
-4. Check status and logs.
+4. Check runtime status and logs:
 
 ```bash
 corvanta status all
@@ -42,69 +54,73 @@ corvanta logs all
 corvanta logs java --app --follow
 ```
 
-## Bootstrap Script
+---
 
-Script: `/Users/sarathkumar/Projects/Corvanta/scripts/bootstrap-modules.sh`
-
-Behavior:
-- If `docura-backend` or `intelligence-service` is missing, it clones that repo.
-- If module repo exists, it fetches and pulls `main` with `--ff-only`.
-- If an existing module is not on `main`, it skips auto-pull and prints what to run manually.
-
-Optional mode:
+## Command Deck
 
 ```bash
-scripts/bootstrap-modules.sh --clone-only
+corvanta start [all|java|python]
+corvanta stop [all|java|python]
+corvanta restart [all|java|python]
+corvanta status [all|java|python]
+corvanta logs [all|java|python] [--follow] [--app] [--errors]
+corvanta bootstrap [--clone-only]
 ```
 
-This mode clones missing repos and does not update already existing repos.
+High-signal log views:
 
-## Corvanta CLI (Recommended)
+```bash
+corvanta logs java --app --follow
+corvanta logs python --app --follow
+corvanta logs all --errors --follow
+```
 
-Script: `/Users/sarathkumar/Projects/Corvanta/scripts/corvanta`
+---
 
-Supported commands:
-- `corvanta start [all|java|python]`
-- `corvanta stop [all|java|python]`
-- `corvanta restart [all|java|python]`
-- `corvanta status [all|java|python]`
-- `corvanta logs [all|java|python] [--follow] [--app] [--errors]`
-- `corvanta bootstrap [--clone-only]`
+## Global CLI (Optional)
 
-Global PATH setup (optional, one-time):
+To run `corvanta` from anywhere:
 
 ```bash
 echo 'export PATH="/Users/sarathkumar/Projects/Corvanta/scripts:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-## Run/Restart Services During Development
+Without PATH setup:
 
-Script: `/Users/sarathkumar/Projects/Corvanta/scripts/dev-services.sh`
+```bash
+/Users/sarathkumar/Projects/Corvanta/scripts/corvanta start all
+```
 
-- Start both: `scripts/dev-services.sh start all`
-- Restart Java only: `scripts/dev-services.sh restart java`
-- Restart Python only: `scripts/dev-services.sh restart python`
-- Stop one: `scripts/dev-services.sh stop java` or `stop python`
-- Stop both: `scripts/dev-services.sh stop all`
+---
 
-Logs are written in `.run/` and each service log is cleared on every start/restart of that service.
+## Runtime Artifacts
 
-## Logging Views
+Generated under `.run/`:
 
-Use these for better visibility in terminal:
+- `docura-backend.pid`
+- `intelligence-service.pid`
+- `docura-backend.log`
+- `intelligence-service.log`
 
-- Raw logs: `corvanta logs [all|java|python] [--follow]`
-- App-focused logs (less framework noise): `corvanta logs [all|java|python] --app [--follow]`
-- Errors/Warnings only: `corvanta logs [all|java|python] --errors [--follow]`
+Behavior:
 
-Color behavior:
-- `ERROR`/exceptions: red
-- `WARN`: yellow
-- `INFO`: green
+- Repeated `start all` does not create duplicate service processes.
+- Each service log is cleared when that service starts/restarts.
 
-## Notes
+---
 
-- Root coordination docs are under `coordination/`.
-- Module-specific standards are in each module's `AGENTS.md`.
-- See script-level details in `scripts/DEV_SERVICES.md`.
+## Repository Layout
+
+- Root repository: `git@github.com:sarathkumar365/Corvanta.git`
+- Backend module: `git@github.com:sarathkumar365/docura-backend.git`
+- Worker module: `git@github.com:sarathkumar365/intelligence-service.git`
+
+---
+
+## Control Docs
+
+- Cross-project coordination and handoffs: `coordination/`
+- Shared RabbitMQ contract: `coordination/RABBIT_CONTRACT.md`
+- Service management details: `scripts/DEV_SERVICES.md`
+- Module-specific engineering standards: each module's `AGENTS.md`
