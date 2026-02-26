@@ -48,28 +48,19 @@ If you skip PATH setup, use full path commands:
 Start everything:
 
 ```bash
-corvanta start all
+corvanta start
 ```
 
-Check status:
+Check health:
 
 ```bash
-corvanta status all
+corvanta health
 ```
 
-Restart only what changed:
+Stop services:
 
 ```bash
-corvanta restart java
-corvanta restart python
-```
-
-Stop one or all:
-
-```bash
-corvanta stop java
-corvanta stop python
-corvanta stop all
+corvanta stop
 ```
 
 ## 5) Logs and Visibility
@@ -80,35 +71,36 @@ Live logs:
 corvanta logs all --follow
 ```
 
-App-focused logs:
+Service-specific logs:
 
 ```bash
-corvanta logs java --app --follow
-corvanta logs python --app --follow
+corvanta logs java --follow
+corvanta logs python --follow
 ```
 
-Errors/warnings only:
+Start and immediately stream logs:
 
 ```bash
-corvanta logs all --errors --follow
+corvanta start-with-logs
 ```
 
 ## 6) Command Reference
 
 ```bash
-corvanta start [all|java|python]
-corvanta stop [all|java|python]
-corvanta restart [all|java|python]
-corvanta status [all|java|python]
-corvanta logs [all|java|python] [--follow] [--app] [--errors]
+corvanta start
+corvanta stop
+corvanta health
+corvanta logs [all|java|python] [--follow|--no-follow]
+corvanta start-with-logs
 corvanta bootstrap [--clone-only]
 ```
 
 ## 7) Notes
 
 - Runtime files are written under `.run/`.
-- Repeated `start all` does not intentionally create duplicate service processes.
-- Each service log is cleared when that service is started/restarted.
+- `start/stop/health` automatically clean stale PID files and conflicting old processes.
+- Logs are colorized by default in `corvanta logs`.
+- Internal cleanup actions are tracked in `.run/manager.log`.
 
 For deeper script internals and behavior details:
 

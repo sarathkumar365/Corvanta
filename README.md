@@ -55,7 +55,7 @@ In simple terms: one service manages workflow decisions, the other executes spec
 
 ## 🧭 Get Started
 
-For full setup, local run commands, and service lifecycle operations (`start`, `stop`, `restart`, `status`, `logs`), go to:
+For full setup, local run commands, and service lifecycle operations (`start`, `stop`, `health`, `logs`), go to:
 
 - If you are evaluating Corvanta, this README is enough for product context.
 - If you are running Corvanta locally, start with Developer Gate.

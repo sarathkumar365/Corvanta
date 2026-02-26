@@ -4,32 +4,31 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEV_SCRIPT="$ROOT_DIR/scripts/dev-services.sh"
 BOOTSTRAP_SCRIPT="$ROOT_DIR/scripts/bootstrap-modules.sh"
+RUNTIME_DIR="$ROOT_DIR/.run"
+JAVA_LOG_FILE="$RUNTIME_DIR/docura-backend.log"
+PYTHON_LOG_FILE="$RUNTIME_DIR/intelligence-service.log"
 
 usage() {
   cat <<USAGE
 Corvanta CLI
 
 Usage:
-  corvanta start [all|java|python]
-  corvanta stop [all|java|python]
-  corvanta restart [all|java|python]
-  corvanta status [all|java|python]
-  corvanta logs [all|java|python] [--follow] [--app] [--errors]
+  corvanta start
+  corvanta stop
+  corvanta health
+  corvanta logs [all|java|python] [--follow|--no-follow]
+  corvanta start-with-logs
   corvanta bootstrap [--clone-only]
 
-Examples:
-  corvanta start all
-  corvanta restart java
-  corvanta logs java --follow
-  corvanta logs java --app --follow
-  corvanta logs all --errors
-  corvanta bootstrap
+Notes:
+  - start/stop/health automatically handle stale PID cleanup and conflicting processes.
+  - service logs are written to .run/ directory.
 USAGE
 }
 
 colorize_stream() {
   while IFS= read -r line; do
-    if [[ "$line" == *"ERROR"* ]] || [[ "$line" == *"Exception"* ]] || [[ "$line" == *"Traceback"* ]]; then
+    if [[ "$line" == *"ERROR"* ]] || [[ "$line" == *"Exception"* ]] || [[ "$line" == *"Traceback"* ]] || [[ "$line" == *"FAILED"* ]]; then
       printf '\033[31m%s\033[0m\n' "$line"
     elif [[ "$line" == *"WARN"* ]]; then
       printf '\033[33m%s\033[0m\n' "$line"
@@ -41,83 +40,75 @@ colorize_stream() {
   done
 }
 
-run_logs() {
+print_logs() {
   local target="${1:-all}"
-  shift || true
+  local follow="true"
 
-  local follow="false"
-  local app_only="false"
-  local errors_only="false"
+  if [[ "${2:-}" == "--follow" ]]; then
+    follow="true"
+  elif [[ "${2:-}" == "--no-follow" ]]; then
+    follow="false"
+  elif [[ -n "${2:-}" ]]; then
+    echo "Unknown logs option: ${2}" >&2
+    usage
+    exit 1
+  fi
 
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --follow)
-        follow="true"
-        ;;
-      --app)
-        app_only="true"
-        ;;
-      --errors)
-        errors_only="true"
-        ;;
-      *)
-        echo "Unknown logs option: $1" >&2
-        usage
+  case "$target" in
+    java)
+      if [[ ! -f "$JAVA_LOG_FILE" ]]; then
+        echo "java: log file not found at $JAVA_LOG_FILE" >&2
         exit 1
-        ;;
-    esac
-    shift
-  done
-
-  local -a cmd=("$DEV_SCRIPT" "logs" "$target")
-  if [[ "$follow" == "true" ]]; then
-    cmd+=("--follow")
-  fi
-
-  if [[ "$errors_only" == "true" ]]; then
-    "${cmd[@]}" | rg --line-buffered "ERROR|WARN|Exception|Traceback|FAILED|Caused by:" | colorize_stream
-    return
-  fi
-
-  if [[ "$app_only" == "true" ]]; then
-    case "$target" in
-      java)
-        "${cmd[@]}" \
-          | rg --line-buffered -v "org\\.springframework|org\\.hibernate|com\\.zaxxer|org\\.apache\\.catalina|org\\.flywaydb|\\so\\.s\\.|\\s\\.s\\.|\\so\\.h\\.|\\so\\.f\\.|\\so\\.a\\." \
-          | colorize_stream
-        ;;
-      python)
-        "${cmd[@]}" \
-          | rg --line-buffered "app\\.|intelligence-service|taskId=|runId=|stepIndex=|traceId=|Received task|Task processed|Task processing failed|Published task result|ERROR|WARN|Traceback|Exception" \
-          | colorize_stream
-        ;;
-      all)
-        "${cmd[@]}" \
-          | rg --line-buffered -v "org\\.springframework|org\\.hibernate|com\\.zaxxer|org\\.apache\\.catalina|org\\.flywaydb|\\so\\.s\\.|\\s\\.s\\.|\\so\\.h\\.|\\so\\.f\\.|\\so\\.a\\." \
-          | rg --line-buffered "app\\.|com\\.docura|intelligence-service|taskId=|runId=|stepIndex=|traceId=|Received task|Task processed|Task processing failed|Published task result|ERROR|WARN|Traceback|Exception|===== .* log:" \
-          | colorize_stream
-        ;;
-      *)
-        echo "Invalid logs target: $target" >&2
-        usage
+      fi
+      if [[ "$follow" == "true" ]]; then
+        tail -n 120 -f "$JAVA_LOG_FILE" | colorize_stream
+      else
+        tail -n 120 "$JAVA_LOG_FILE" | colorize_stream
+      fi
+      ;;
+    python)
+      if [[ ! -f "$PYTHON_LOG_FILE" ]]; then
+        echo "python: log file not found at $PYTHON_LOG_FILE" >&2
         exit 1
-        ;;
-    esac
-    return
-  fi
-
-  "${cmd[@]}" | colorize_stream
+      fi
+      if [[ "$follow" == "true" ]]; then
+        tail -n 120 -f "$PYTHON_LOG_FILE" | colorize_stream
+      else
+        tail -n 120 "$PYTHON_LOG_FILE" | colorize_stream
+      fi
+      ;;
+    all)
+      if [[ ! -f "$JAVA_LOG_FILE" && ! -f "$PYTHON_LOG_FILE" ]]; then
+        echo "logs: no log files found under $RUNTIME_DIR" >&2
+        exit 1
+      fi
+      if [[ "$follow" == "true" ]]; then
+        tail -n 120 -f "$JAVA_LOG_FILE" "$PYTHON_LOG_FILE" 2>/dev/null | colorize_stream
+      else
+        tail -n 120 "$JAVA_LOG_FILE" "$PYTHON_LOG_FILE" 2>/dev/null | colorize_stream
+      fi
+      ;;
+    *)
+      echo "Invalid logs target: $target" >&2
+      usage
+      exit 1
+      ;;
+  esac
 }
 
 command="${1:-}"
 shift || true
 
 case "$command" in
-  logs)
-    run_logs "$@"
+  start|stop|health)
+    "$DEV_SCRIPT" "$command"
     ;;
-  start|stop|restart|status)
-    "$DEV_SCRIPT" "$command" "$@"
+  logs)
+    print_logs "${1:-all}" "${2:-}"
+    ;;
+  start-with-logs)
+    "$DEV_SCRIPT" start
+    print_logs all --follow
     ;;
   bootstrap)
     "$BOOTSTRAP_SCRIPT" "$@"
